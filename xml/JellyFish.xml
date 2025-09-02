@@ -1,0 +1,212 @@
+<mujoco model="JellyFish">
+  <compiler angle="radian"/>
+  
+  <default>
+    <default class="BLDC">
+      <motor ctrlrange="0 13"/>
+      <default class="visual">
+        <geom group="2" type="mesh" contype="1" conaffinity="2"/>
+      </default>
+      <default class="collision">
+        <geom group="3" type="box" contype="1" conaffinity="2"/>
+        <default class="rotor">
+          <geom type="ellipsoid" size=".13 .13 .01" contype="1" conaffinity="2"/>
+        </default>
+      </default>
+      <site group="5"/>
+    </default>
+  </default>
+
+  <asset>
+    <mesh name="BODY" file="BODY.STL"/>
+    <mesh name="Arm1_Link1" file="Arm1_Link1.STL"/>
+    <mesh name="Arm1_Link2" file="Arm1_Link2.STL"/>
+    <mesh name="Arm1_Link3" file="Arm1_Link3.STL"/>
+    <mesh name="Arm1_Link4" file="Arm1_Link4.STL"/>
+    <mesh name="Arm1_Link5" file="Arm1_Link5.STL"/>
+    <mesh name="Arm2_Link1" file="Arm2_Link1.STL"/>
+    <mesh name="Arm2_Link2" file="Arm2_Link2.STL"/>
+    <mesh name="Arm2_Link3" file="Arm2_Link3.STL"/>
+    <mesh name="Arm2_Link4" file="Arm2_Link4.STL"/>
+    <mesh name="Arm2_Link5" file="Arm2_Link5.STL"/>
+    <mesh name="Arm3_Link1" file="Arm3_Link1.STL"/>
+    <mesh name="Arm3_Link2" file="Arm3_Link2.STL"/>
+    <mesh name="Arm3_Link3" file="Arm3_Link3.STL"/>
+    <mesh name="Arm3_Link4" file="Arm3_Link4.STL"/>
+    <mesh name="Arm3_Link5" file="Arm3_Link5.STL"/>
+    <mesh name="Arm4_Link1" file="Arm4_Link1.STL"/>
+    <mesh name="Arm4_Link2" file="Arm4_Link2.STL"/>
+    <mesh name="Arm4_Link3" file="Arm4_Link3.STL"/>
+    <mesh name="Arm4_Link4" file="Arm4_Link4.STL"/>
+    <mesh name="Arm4_Link5" file="Arm4_Link5.STL"/>
+  </asset>
+
+  <worldbody>
+    <body name="BODY" pos="0 0 0.25">
+      <joint type="free"/>
+      <inertial pos="0 0 0" quat="1 1 0 0" mass="0.6845345" diaginertia="0.00360091 0.00691789 0.00360702"/>
+      <geom type="mesh" mesh="BODY" rgba="0.79216 0.81961 0.93333 1" contype="1" conaffinity="2"/>
+      <site name="imu" pos="0 0 0" quat="1 0 0 0"/>
+      <geom class="collision" size="0.12 0.12 .02" pos="0 0 0" contype="1" conaffinity="2"/>
+
+    <body name="Arm1_Link1" pos="0.0848528 0.0848528 0" quat="0.382683 0 0 -0.92388">
+      <inertial pos="-0.0628864 -0.00030071 0.0115046" quat="0.432962 0.567439 0.525068 0.46353" mass="0.374106" diaginertia="0.00164276 0.00160619 0.000141896"/>
+      <joint name="Arm3_joint1" pos="0 0 0" axis="0 0 1"/>
+      <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="Arm1_Link1" contype="1" conaffinity="2"/>
+      <body name="Arm1_Link2" pos="-0.134 0 0" quat="0.707107 0.707107 0 0">
+        <inertial pos="-0.0812353 0 0.00033993" quat="0.501818 0.498175 0.498175 0.501818" mass="0.13658" diaginertia="0.000183 0.000171008 2.96325e-05"/>
+        <joint name="Arm3_joint2" pos="0 0 0" axis="0 0 -1"/>
+        <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="Arm1_Link2" contype="1" conaffinity="2"/>
+        <body name="Arm1_Link3" pos="-0.115 0 0">
+          <inertial pos="-0.0545139 -0.00013889 0.00012511" quat="0.503095 0.499879 0.497035 0.499972" mass="0.0415148" diaginertia="4.29713e-05 3.86412e-05 7.76758e-06"/>
+          <joint name="Arm3_joint3" pos="0 0 0" axis="0 0 -1"/>
+          <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="Arm1_Link3" contype="1" conaffinity="2"/>
+          <body name="Arm1_Link4" pos="-0.11 0 0">
+            <inertial pos="-0.0120002 0.0005559 -0.000556" quat="0.270139 0.652173 0.271057 0.654388" mass="0.102003" diaginertia="2.88701e-05 2.767e-05 2.05299e-05"/>
+            <joint name="Arm3_joint4" pos="0 0 0" axis="0 0 -1"/>
+            <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="Arm1_Link4" contype="1" conaffinity="2"/>
+            <body name="Arm1_Link5" pos="-0.024 0 0" quat="0 0 0.707107 0.707107">
+              <inertial pos="0.0497922 0 0.00013454" quat="1 0 0.000236013 0" mass="0.3734" diaginertia="0.00364513 0.0019397 0.00192912"/>
+              <site name="thrust1" pos="0.071 0 0"/>
+              <site name="torque1" pos="0.071 0 0"/>
+              <joint name="Arm3_joint5" pos="0 0 0" axis="0 0 -1"/>
+              <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="Arm1_Link5" contype="1" conaffinity="2"/>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+    <body name="Arm2_Link1" pos="-0.084853 0.084853 0" quat="0.923879 0 0 -0.382684">
+      <inertial pos="-0.0628864 -0.00030071 0.0115046" quat="0.432962 0.567439 0.525068 0.46353" mass="0.374106" diaginertia="0.00164276 0.00160619 0.000141896"/>
+      <joint name="Arm2_joint1" pos="0 0 0" axis="0 0 1"/>
+      <geom type="mesh" rgba="0.79216 0.81961 0.93333 1" mesh="Arm2_Link1" contype="1" conaffinity="2"/>
+      <body name="Arm2_Link2" pos="-0.134 0 -0.0086518" quat="0.707105 0.707108 0 0">
+        <inertial pos="-0.0812353 0 0.00033993" quat="0.501818 0.498175 0.498175 0.501818" mass="0.13658" diaginertia="0.000183 0.000171008 2.96325e-05"/>
+        <joint name="Arm2_joint2" pos="0 0 0" axis="0 0 -1"/>
+        <geom type="mesh" rgba="0.79216 0.81961 0.93333 1" mesh="Arm2_Link2" contype="1" conaffinity="2"/>
+        <body name="Arm2_Link3" pos="-0.115 0 0">
+          <inertial pos="-0.0545139 -0.00013889 0.00012511" quat="0.503095 0.499879 0.497035 0.499972" mass="0.0415148" diaginertia="4.29713e-05 3.86412e-05 7.76758e-06"/>
+          <joint name="Arm2_joint3" pos="0 0 0" axis="0 0 -1"/>
+          <geom type="mesh" rgba="0.79216 0.81961 0.93333 1" mesh="Arm2_Link3" contype="1" conaffinity="2"/>
+          <body name="Arm2_Link4" pos="-0.11 0.00865181 0">
+            <inertial pos="-0.0120002 0.0005559 -0.000556" quat="0.270139 0.652173 0.271057 0.654388" mass="0.102003" diaginertia="2.88701e-05 2.767e-05 2.05299e-05"/>
+            <joint name="Arm2_joint4" pos="0 0 0" axis="0 0 -1"/>
+            <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="Arm2_Link4" contype="1" conaffinity="2"/>
+            <body name="Arm2_Link5" pos="-0.024 -0.0086518 0" quat="-2.59734e-06 -2.59735e-06 0.707108 0.707105">
+              <inertial pos="0.0497922 0 0.00013454" quat="1 0 0.000236013 0" mass="0.3734" diaginertia="0.00364513 0.0019397 0.00192912"/>
+              <site name="thrust2" pos="0.071 0 0"/>
+              <site name="torque2" pos="0.071 0 0"/>
+              <joint name="Arm2_joint5" pos="0 0 0" axis="0 0 -1"/>
+              <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="Arm2_Link5" contype="1" conaffinity="2"/>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+    <body name="Arm3_Link1" pos="-0.084853 -0.084853 0" quat="0.923879 0 0 0.382684">
+      <inertial pos="-0.0628864 -0.00030071 0.0115046" quat="0.432962 0.567439 0.525068 0.46353" mass="0.374106" diaginertia="0.00164276 0.00160619 0.000141896"/>
+      <joint name="Arm1_joint1" pos="0 0 0" axis="0 0 1"/>
+      <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="Arm3_Link1" contype="1" conaffinity="2"/>
+      <body name="Arm3_Link2" pos="-0.134 0 0" quat="0.707107 0.707107 0 0">
+        <inertial pos="-0.0812353 0 0.00033993" quat="0.501818 0.498175 0.498175 0.501818" mass="0.13658" diaginertia="0.000183 0.000171008 2.96325e-05"/>
+        <joint name="Arm1_joint2" pos="0 0 0" axis="0 0 -1"/>
+        <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="Arm3_Link2" contype="1" conaffinity="2"/>
+        <body name="Arm3_Link3" pos="-0.115 0 0">
+          <inertial pos="-0.0545139 -0.00013889 0.00012511" quat="0.503095 0.499879 0.497035 0.499972" mass="0.0415148" diaginertia="4.29713e-05 3.86412e-05 7.76758e-06"/>
+          <joint name="Arm1_joint3" pos="0 0 0" axis="0 0 -1"/>
+          <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="Arm3_Link3" contype="1" conaffinity="2"/>
+          <body name="Arm3_Link4" pos="-0.110001 0 0">
+            <inertial pos="-0.0120002 0.0005559 -0.000556" quat="0.270139 0.652173 0.271057 0.654388" mass="0.102003" diaginertia="2.88701e-05 2.767e-05 2.05299e-05"/>
+            <joint name="Arm1_joint4" pos="0 0 0" axis="0 0 -1"/>
+            <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="Arm3_Link4" contype="1" conaffinity="2"/>
+            <body name="Arm3_Link5" pos="-0.0239992 0 0" quat="0 0 -0.707107 -0.707107">
+              <inertial pos="0.0497922 0 0.00013454" quat="1 0 0.000236013 0" mass="0.3734" diaginertia="0.00364513 0.0019397 0.00192912"/>
+              <site name="thrust3" pos="0.071 0 0"/>
+              <site name="torque3" pos="0.071 0 0"/>
+              <joint name="Arm1_joint5" pos="0 0 0" axis="0 0 -1"/>
+              <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="Arm3_Link5" contype="1" conaffinity="2"/>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+    <body name="Arm4_Link1" pos="0.0848528 -0.0848528 0" quat="0.382683 0 0 0.92388">
+      <inertial pos="-0.0628864 -0.00030071 0.0115046" quat="0.432962 0.567439 0.525068 0.46353" mass="0.374106" diaginertia="0.00164276 0.00160619 0.000141896"/>
+      <joint name="Arm4_joint1" pos="0 0 0" axis="0 0 1"/>
+      <geom type="mesh" rgba="1 1 1 1" mesh="Arm4_Link1" contype="1" conaffinity="2"/>
+      <body name="Arm4_Link2" pos="-0.134 0 0" quat="0.707107 0.707107 0 0">
+        <inertial pos="-0.0812353 0 0.00033993" quat="0.501818 0.498175 0.498175 0.501818" mass="0.13658" diaginertia="0.000183 0.000171008 2.96325e-05"/>
+        <joint name="Arm4_joint2" pos="0 0 0" axis="0 0 -1"/>
+        <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="Arm4_Link2" contype="1" conaffinity="2"/>
+        <body name="Arm4_Link3" pos="-0.115 0 0">
+          <inertial pos="-0.0545139 -0.00013889 0.00012511" quat="0.503095 0.499879 0.497035 0.499972" mass="0.0415148" diaginertia="4.29713e-05 3.86412e-05 7.76758e-06"/>
+          <joint name="Arm4_joint3" pos="0 0 0" axis="0 0 -1"/>
+          <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="Arm4_Link3" contype="1" conaffinity="2"/>
+          <body name="Arm4_Link4" pos="-0.11 0 0">
+            <inertial pos="-0.0120002 0.0005559 -0.000556" quat="0.270139 0.652173 0.271057 0.654388" mass="0.102003" diaginertia="2.88701e-05 2.767e-05 2.05299e-05"/>
+            <joint name="Arm4_joint4" pos="0 0 0" axis="0 0 -1"/>
+            <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="Arm4_Link4" contype="1" conaffinity="2"/>
+            <body name="Arm4_Link5" pos="-0.024 0 0" quat="0 0 0.707107 0.707107">
+              <inertial pos="0.0497922 0 0.00013454" quat="1 0 0.000236013 0" mass="0.3734" diaginertia="0.00364513 0.0019397 0.00192912"/>
+              <site name="thrust4" pos="0.071 0 0"/>
+              <site name="torque4" pos="0.071 0 0"/>
+              <joint name="Arm4_joint5" pos="0 0 0" axis="0 0 -1"/>
+              <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="Arm4_Link5" contype="1" conaffinity="2"/>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+    <!-- <body name="weight" pos="0.0 0.0 0.3">
+      <joint name="rotor_joint" pos="0 0 -0.3" axis="1 1 0"/>
+      <inertial pos="0 0 0" mass="0.000001" diaginertia="3.2e-05 3.2e-05 3.2e-05"/>
+      <geom name="weight_geom" type="sphere" size="0.02" rgba="1 0 0 1" contype="0" conaffinity="0"/>
+    </body> -->
+  </body>
+  </worldbody>
+  
+  <actuator>
+    <!-- Thrusters -->
+    <motor class="BLDC" name="thrust1" site="thrust1" gear="1 0 0 0 0 0" ctrlrange="0 50"/>
+    <motor class="BLDC" name="thrust2" site="thrust2" gear="1 0 0 0 0 0" ctrlrange="0 50"/>
+    <motor class="BLDC" name="thrust3" site="thrust3" gear="1 0 0 0 0 0" ctrlrange="0 50"/>
+    <motor class="BLDC" name="thrust4" site="thrust4" gear="1 0 0 0 0 0" ctrlrange="0 50"/>
+    <motor class="BLDC" name="torque1" site="torque1" gear="0 0 0 1 0 0" ctrlrange="-3.0 3.0"/>
+    <motor class="BLDC" name="torque2" site="torque2" gear="0 0 0 1 0 0" ctrlrange="-3.0 3.0"/>
+    <motor class="BLDC" name="torque3" site="torque3" gear="0 0 0 1 0 0" ctrlrange="-3.0 3.0"/>
+    <motor class="BLDC" name="torque4" site="torque4" gear="0 0 0 1 0 0" ctrlrange="-3.0 3.0"/>
+    <!-- Arm1 -->
+    <position name="servo_Arm1_joint1" joint="Arm1_joint1" kp="30" kv="0.1" ctrlrange="-2.00713 2.00713"/>
+    <position name="servo_Arm1_joint2" joint="Arm1_joint2" kp="30" kv="0.1"  ctrlrange="-2.00713 2.00713"/>
+    <position name="servo_Arm1_joint3" joint="Arm1_joint3" kp="30" kv="0.1"  ctrlrange="-2.00713 2.00713"/>
+    <position name="servo_Arm1_joint4" joint="Arm1_joint4" kp="30" kv="0.1" ctrlrange="-1.13446 -3.14159"/>
+    <position name="servo_Arm1_joint5" joint="Arm1_joint5" kp="30" kv="0.1" ctrlrange="-1.74533 1.74533"/>
+    <!-- Arm2 -->
+    <position name="servo_Arm2_joint1" joint="Arm2_joint1" kp="30" kv="0.1" ctrlrange="-2.00713 2.00713"/>
+    <position name="servo_Arm2_joint2" joint="Arm2_joint2" kp="30" kv="0.1" ctrlrange="-2.00713 2.00713"/>
+    <position name="servo_Arm2_joint3" joint="Arm2_joint3" kp="30" kv="0.1" ctrlrange="-2.00713 2.00713"/>
+    <position name="servo_Arm2_joint4" joint="Arm2_joint4" kp="30" kv="0.1" ctrlrange="-1.13446 -3.14159"/>
+    <position name="servo_Arm2_joint5" joint="Arm2_joint5" kp="30" kv="0.1" ctrlrange="-1.74533 1.74533"/>
+    <!-- Arm3 -->
+    <position name="servo_Arm3_joint1" joint="Arm3_joint1" kp="30" kv="0.1" ctrlrange="-2.00713 2.00713"/>
+    <position name="servo_Arm3_joint2" joint="Arm3_joint2" kp="30" kv="0.1" ctrlrange="-2.00713 2.00713"/>
+    <position name="servo_Arm3_joint3" joint="Arm3_joint3" kp="30" kv="0.1" ctrlrange="-2.00713 2.00713"/>
+    <position name="servo_Arm3_joint4" joint="Arm3_joint4" kp="30" kv="0.1" ctrlrange="-1.13446 -3.14159"/>
+    <position name="servo_Arm3_joint5" joint="Arm3_joint5" kp="30" kv="0.1" ctrlrange="-1.74533 1.74533"/>
+    <!-- Arm4 -->
+    <position name="servo_Arm4_joint1" joint="Arm4_joint1" kp="30" kv="0.1" ctrlrange="-2.00713 2.00713"/>
+    <position name="servo_Arm4_joint2" joint="Arm4_joint2" kp="30" kv="0.1" ctrlrange="-2.00713 2.00713"/>
+    <position name="servo_Arm4_joint3" joint="Arm4_joint3" kp="30" kv="0.1" ctrlrange="-2.00713 2.00713"/>
+    <position name="servo_Arm4_joint4" joint="Arm4_joint4" kp="30" kv="0.1" ctrlrange="-1.13446 -3.14159"/>
+    <position name="servo_Arm4_joint5" joint="Arm4_joint5" kp="30" kv="0.1" ctrlrange="-1.74533 1.74533"/>
+
+    <!-- <velocity name="servo_weight_vel" joint="rotor_joint" kv="0.0" ctrlrange="-10 10"/> -->
+  </actuator>
+
+    <sensor>
+    <gyro name="body_gyro" site="imu"/>
+    <accelerometer name="body_linacc" site="imu"/>
+    <framequat name="body_quat" objtype="site" objname="imu"/>
+  </sensor>
+
+</mujoco>
