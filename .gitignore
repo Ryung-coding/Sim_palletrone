@@ -1,0 +1,27 @@
+# ROS2 build/install/log
+build/
+install/
+log/
+
+# Mujoco log
+MUJOCO_LOG.TXT/
+
+# VSCode 설정
+.vscode/
+
+# Python 캐시 / 임시
+__pycache__/*
+*.py[cod]
+*$py.class
+
+# 편집기 임시파일 (vim, emacs 등)
+*.swp
+*.swo
+*.swx
+*.swp.*
+*~
+
+# 시스템 파일
+.DS_Store
+Thumbs.db
+
