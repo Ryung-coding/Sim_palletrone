@@ -1,0 +1,89 @@
+<mujoco model="Palletrone">
+  <!-- ===== Assets ===== -->
+  <asset>
+    <mesh name="body_mesh"       file="Body.STL"/>
+    <mesh name="servo_prop_mesh" file="Servo_and_Prop.STL"/>
+    <material name="mat_body"  rgba="0.75 0.77 0.82 1"/>
+    <material name="mat_servo" rgba="0.85 0.85 0.90 1"/>
+  </asset>
+
+  <!-- ===== World / Robot ===== -->
+  <worldbody>
+    <body name="base" pos="0 0 0.1">
+      <!-- 본체 메시 -->
+      <geom name="base_vis" type="mesh" mesh="body_mesh"
+            material="mat_body" contype="0" conaffinity="0"/>
+
+      <!-- IMU site -->
+      <site name="imu" pos="0 0 0.15" size="0.005" type="sphere" rgba="0.9 0.3 0.3 1"/>
+
+      <!-- 반경 0.30 m, yaw +45/-45/+135/-135 deg -->
+      <!-- 0.30 * sqrt(2)/2 ≈ 0.212132 -->
+
+      <!-- Servo 1 : +45° -->
+      <body name="servo1" pos="0.212132 0.212132 0.10">
+        <joint name="j_servo1" type="hinge" axis="1 0 0"
+               range="-1.57 1.57" damping="0.1"/>
+        <geom name="servo1_vis" type="mesh" mesh="servo_prop_mesh"
+              material="mat_servo" contype="0" conaffinity="0"/>
+        <site name="prop1" pos="0 0 0" size="0.004" type="sphere" rgba="0.2 0.8 0.2 1"/>
+      </body>
+
+      <!-- Servo 2 : -45° -->
+      <body name="servo2" pos="0.212132 -0.212132 0.10">
+        <joint name="j_servo2" type="hinge" axis="1 0 0"
+               range="-1.57 1.57" damping="0.1"/>
+        <geom name="servo2_vis" type="mesh" mesh="servo_prop_mesh"
+              material="mat_servo" contype="0" conaffinity="0"/>
+        <site name="prop2" pos="0 0 0" size="0.004" type="sphere" rgba="0.2 0.8 0.2 1"/>
+      </body>
+
+      <!-- Servo 3 : +135° -->
+      <body name="servo3" pos="-0.212132 0.212132 0.10">
+        <joint name="j_servo3" type="hinge" axis="1 0 0"
+               range="-1.57 1.57" damping="0.1"/>
+        <geom name="servo3_vis" type="mesh" mesh="servo_prop_mesh"
+              material="mat_servo" contype="0" conaffinity="0"/>
+        <site name="prop3" pos="0 0 0" size="0.004" type="sphere" rgba="0.2 0.8 0.2 1"/>
+      </body>
+
+      <!-- Servo 4 : -135° -->
+      <body name="servo4" pos="-0.212132 -0.212132 0.10">
+        <joint name="j_servo4" type="hinge" axis="1 0 0"
+               range="-1.57 1.57" damping="0.1"/>
+        <geom name="servo4_vis" type="mesh" mesh="servo_prop_mesh"
+              material="mat_servo" contype="0" conaffinity="0"/>
+        <site name="prop4" pos="0 0 0" size="0.004" type="sphere" rgba="0.2 0.8 0.2 1"/>
+      </body>
+    </body>
+  </worldbody>
+
+  <!-- ===== Sensors ===== -->
+  <sensor>
+    <!-- 바디 자세/각속도/각가속도 (월드 기준) -->
+    <framequat   name="base_quat"    objtype="body" objname="base"/>
+    <frameangvel name="base_angvel"  objtype="body" objname="base"/>
+    <frameangacc name="base_angacc"  objtype="body" objname="base"/>
+
+    <!-- 바디 위치/선속도/선가속도 (월드 기준) -->
+    <framepos    name="base_pos"     objtype="body" objname="base"/>
+    <framelinvel name="base_linvel"  objtype="body" objname="base"/>
+    <framelinacc name="base_linacc"  objtype="body" objname="base"/>
+  </sensor>
+
+
+  <!-- ===== Actuators ===== -->
+  <actuator>
+    <!-- BLDC thrust 먼저 (f1..f4) -->
+    <general name="BLDC1" site="prop1" gear="0 0 0 0 0 1"/>
+    <general name="BLDC2" site="prop2" gear="0 0 0 0 0 1"/>
+    <general name="BLDC3" site="prop3" gear="0 0 0 0 0 1"/>
+    <general name="BLDC4" site="prop4" gear="0 0 0 0 0 1"/>
+
+    <!-- Servo position control (θ1..θ4) -->
+    <position name="servo1_pos" joint="j_servo1" kp="50" ctrlrange="-1.57 1.57"/>
+    <position name="servo2_pos" joint="j_servo2" kp="50" ctrlrange="-1.57 1.57"/>
+    <position name="servo3_pos" joint="j_servo3" kp="50" ctrlrange="-1.57 1.57"/>
+    <position name="servo4_pos" joint="j_servo4" kp="50" ctrlrange="-1.57 1.57"/>
+  </actuator>
+</mujoco>
