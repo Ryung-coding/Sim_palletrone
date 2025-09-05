@@ -12,7 +12,7 @@ from palletrone_interfaces.msg import Input, PalletroneState
 
 PHYSICS_HZ = 400.0
 
-def quat_to_euler_zyx(q):  # MuJoCo: [w,x,y,z] -> [roll,pitch,yaw]
+def quat_to_rpy(q):  # [w,x,y,z] -> [roll,pitch,yaw]
     w,x,y,z = q
     yaw   = math.atan2(2*(w*z + x*y), 1 - 2*(y*y + z*z))
     s     = max(-1.0, min(1.0, 2*(w*y - z*x)))
@@ -20,11 +20,13 @@ def quat_to_euler_zyx(q):  # MuJoCo: [w,x,y,z] -> [roll,pitch,yaw]
     roll  = math.atan2(2*(w*x + y*z), 1 - 2*(x*x + y*y))
     return np.array([roll, pitch, yaw], float)
 
-def sensor_vec(model, data, name):
-    sid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SENSOR, name.encode())
-    if sid < 0: return None
-    adr = model.sensor_adr[sid]; dim = model.sensor_dim[sid]
-    return np.array(data.sensordata[adr:adr+dim], float)
+def quat_to_R_WI(q):  # world-from-IMU
+    w,x,y,z = q
+    return np.array([
+        [1-2*(y*y+z*z), 2*(x*y - w*z),   2*(x*z + w*y)],
+        [2*(x*y + w*z), 1-2*(x*x+z*z),   2*(y*z - w*x)],
+        [2*(x*z - w*y), 2*(y*z + w*x),   1-2*(x*x+y*y)],
+    ], dtype=float)
 
 class PlantRosNode(Node):
     def __init__(self):
@@ -33,95 +35,105 @@ class PlantRosNode(Node):
         pkg_share = get_package_share_directory('plant')
         xml_path  = os.path.join(pkg_share, 'xml', 'scene.xml')
 
-        if not os.path.exists(xml_path):
-            self.get_logger().fatal(f"XML not found: {xml_path}")
-            sys.exit(1)
-
         self.model = mujoco.MjModel.from_xml_path(xml_path)
         self.data  = mujoco.MjData(self.model)
         self.model.opt.timestep = 1.0 / PHYSICS_HZ
 
-        self.ctrl = np.zeros(8, float) # order: f1 f2 f3 f4 th1 th2 th3 th4
+        def sid(name): return mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SENSOR, name.encode())
+        self.sid_quat = sid("body_quat")
+        self.sid_gyro = sid("body_gyro")
+        self.sid_pos  = sid("base_pos")
+        self.sid_vel  = sid("base_linvel")
+
+        self.s_adr = self.model.sensor_adr
+        self.s_dim = self.model.sensor_dim
+        
+        #TODO 입력에 대한 시간지연및 모델 불확실성 추가함수 
+
+        self.ctrl = np.zeros(8, dtype=float)  # [f1..f4, th1..th4]
 
         self._lock = threading.Lock()
         self._stop = False
 
-        self.prev_t      = None
-        self.prev_angvel = None
+        self.prev_linvel_W = None
+        self.prev_angvel_W = None
+        self.prev_pub_t    = None
 
-        self.sub_actuator = self.create_subscription(Input, '/input', self.Actuator_callback, 10)
+        self.sub_input = self.create_subscription(Input, '/input', self.input_callback, 10)
         self.pub_state = self.create_publisher(PalletroneState, '/palletrone_state', 10)
-        self.timer = self.create_timer(1.0 / PHYSICS_HZ, self.publish_state)
 
-        self.viewer_thread = threading.Thread(target=self.viewer_loop, daemon=True)
-        self.viewer_thread.start()
-        self.sim_thread = threading.Thread(target=self.sim_loop, daemon=True)
-        self.sim_thread.start()
+        self.viewer_thread = threading.Thread(target=self.viewer_loop, daemon=True); self.viewer_thread.start()
+        self.sim_thread    = threading.Thread(target=self.sim_loop,    daemon=True); self.sim_thread.start()
 
-    def Actuator_callback(self, msg: Input): # msg.u: [f1 f2 f3 f4 th1 th2 th3 th4]
+    def sensing_state(self, sid):
+        adr = self.s_adr[sid]; dim = self.s_dim[sid]
+        return np.array(self.data.sensordata[adr:adr+dim], dtype=float)
+
+    def input_callback(self, msg: Input):
         with self._lock:
-            self.ctrl[:] = np.array(msg.u, float)
+            self.ctrl[:] = np.asarray(msg.u, dtype=float)
 
     def sim_loop(self):
-        next_t = time.perf_counter()
+        next_step = time.perf_counter()
+        next_pub  = next_step
+        
         while rclpy.ok() and not self._stop:
             now = time.perf_counter()
+
             with self._lock:
+                self.data.ctrl[0:4] = self.ctrl[0:4]  # f1..f4
+                self.data.ctrl[4:8] = self.ctrl[4:8]  # th1..th4
 
-                self.data.ctrl[0:4] = self.ctrl[0:4]
-                self.data.ctrl[4:8] = self.ctrl[4:8]
-
-                while now >= next_t:
+                while now >= next_step:
                     mujoco.mj_step(self.model, self.data)
-                    next_t += 1.0 / PHYSICS_HZ
+                    next_step += 1.0 / PHYSICS_HZ
 
-            DT = next_t - time.perf_counter()
-            if DT > 0: time.sleep(DT)
+                while now >= next_pub:
+                    quat_imu_W = self.sensing_state(self.sid_quat)  
+                    gyro_I     = self.sensing_state(self.sid_gyro) 
+                    pos_W      = self.sensing_state(self.sid_pos)   
+                    linvel_W   = self.sensing_state(self.sid_vel)
+
+                    R_WI     = quat_to_R_WI(quat_imu_W)
+                    angvel_W = R_WI @ gyro_I
+                    rpy      = quat_to_rpy(quat_imu_W)
+
+                    t = now
+                    if self.prev_pub_t is None:
+                        acc_W = np.zeros(3)
+                        a_rpy = np.zeros(3)
+                    else:
+                        dt = max(1e-6, t - self.prev_pub_t)
+                        acc_W = (linvel_W - self.prev_linvel_W) / dt
+                        a_rpy = (angvel_W - self.prev_angvel_W) / dt
+
+                    self.prev_pub_t    = t
+                    self.prev_linvel_W = linvel_W.copy()
+                    self.prev_angvel_W = angvel_W.copy()
+
+                    msg = PalletroneState()
+                    msg.pos   = pos_W.tolist()
+                    msg.vel   = linvel_W.tolist()
+                    msg.acc   = acc_W.tolist()
+                    msg.rpy   = rpy.tolist()
+                    msg.w_rpy = angvel_W.tolist()
+                    msg.a_rpy = a_rpy.tolist()
+                    self.pub_state.publish(msg)
+
+                    next_pub += 1.0 / PHYSICS_HZ
+
+            sleep_t = next_step - time.perf_counter()
+            if sleep_t > 0:
+                time.sleep(sleep_t)
 
     def viewer_loop(self):
         try:
             with mujoco.viewer.launch_passive(self.model, self.data) as viewer:
                 while viewer.is_running() and rclpy.ok() and not self._stop:
-                    time.sleep(0.016)
                     with self._lock:
                         viewer.sync()
         except Exception as e:
             self.get_logger().warn(f"viewer end: {e}")
-
-    def publish_state(self):
-        with self._lock:
-            pos        = sensor_vec(self.model, self.data, "base_pos")      
-            linvel     = sensor_vec(self.model, self.data, "base_linvel")  
-            linacc     = sensor_vec(self.model, self.data, "base_linacc") 
-            quat       = sensor_vec(self.model, self.data, "base_quat") 
-            angvel     = sensor_vec(self.model, self.data, "base_angvel") 
-
-            rpy = quat_to_euler_zyx(quat)
-
-            t = time.perf_counter()
-            if self.prev_t is not None and self.prev_angvel is not None:
-                dt = max(1e-6, t - self.prev_t)
-                a_rpy = (angvel - self.prev_angvel) / dt
-            else:
-                a_rpy = np.zeros(3)
-            self.prev_t = t
-            self.prev_angvel = angvel.copy()
-
-            if linacc is None:
-                if not hasattr(self, "prev_linvel"): self.prev_linvel = linvel.copy()
-                dt_lin = max(1e-6, t - getattr(self, "prev_t_lin", t))
-                linacc = (linvel - self.prev_linvel) / dt_lin if hasattr(self, "prev_t_lin") else np.zeros(3)
-                self.prev_linvel = linvel.copy()
-                self.prev_t_lin  = t
-
-        msg = PalletroneState()
-        msg.pos   = pos.tolist()
-        msg.vel   = linvel.tolist()
-        msg.acc   = linacc.tolist()
-        msg.rpy   = rpy.tolist()
-        msg.w_rpy = angvel.tolist()
-        msg.a_rpy = a_rpy.tolist()
-        self.pub_state.publish(msg)
 
     def close(self):
         self._stop = True
@@ -129,9 +141,7 @@ class PlantRosNode(Node):
 def main():
     rclpy.init()
     node = PlantRosNode()
-    def _sigint(_s,_f):
-        node.close()
-    signal.signal(signal.SIGINT, _sigint)
+    signal.signal(signal.SIGINT, lambda *_: node.close())
     try:
         rclpy.spin(node)
     finally:

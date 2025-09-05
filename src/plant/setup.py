@@ -22,7 +22,6 @@ setup(
     entry_points={
         'console_scripts': [
             'plant = plant.plant:main',
-            'plant_ros = plant.plant_ros:main',
         ],
     },
 )
