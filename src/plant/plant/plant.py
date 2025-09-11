@@ -44,6 +44,7 @@ class PlantRosNode(Node):
         self.sid_gyro = sid("body_gyro")
         self.sid_pos  = sid("base_pos")
         self.sid_vel  = sid("base_linvel")
+        self.sid_servo_ang = [sid("servo1_angle"), sid("servo2_angle"), sid("servo3_angle"),sid("servo4_angle")]
 
         self.s_adr = self.model.sensor_adr
         self.s_dim = self.model.sensor_dim
@@ -93,6 +94,7 @@ class PlantRosNode(Node):
                     gyro_I     = self.sensing_state(self.sid_gyro) 
                     pos_W      = self.sensing_state(self.sid_pos)   
                     linvel_W   = self.sensing_state(self.sid_vel)
+                    servo = np.array([self.sensing_state(sid)[0] for sid in self.sid_servo_ang], dtype=float)
 
                     R_WI     = quat_to_R_WI(quat_imu_W)
                     angvel_W = R_WI @ gyro_I
@@ -118,6 +120,7 @@ class PlantRosNode(Node):
                     msg.rpy   = rpy.tolist()
                     msg.w_rpy = angvel_W.tolist()
                     msg.a_rpy = a_rpy.tolist()
+                    msg.servo = servo.tolist()
                     self.pub_state.publish(msg)
 
                     next_pub += 1.0 / PHYSICS_HZ

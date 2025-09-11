@@ -8,6 +8,8 @@ find_package(std_msgs REQUIRED)
 set(msg_files
   "msg/Input.msg"
   "msg/PalletroneState.msg"
+  "msg/Cmd.msg"
+  "msg/Wrench.msg"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}

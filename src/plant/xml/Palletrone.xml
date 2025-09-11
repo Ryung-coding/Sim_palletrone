@@ -7,10 +7,8 @@
   <worldbody>
     <body name="base" pos="0 0 0.145">
       <freejoint name="root"/>
-      <inertial pos="0 0 0" quat="1 0 0 0" mass="4.00"
-                diaginertia="0.00360091 0.00360702 0.00660702"/>
-      <geom name="base_vis" type="mesh" mesh="body_mesh"
-            rgba="0.75 0.77 0.82 1" contype="1" conaffinity="1"/>
+      <inertial pos="0 0 0" quat="1 0 0 0" mass="4.00" diaginertia="0.360091 0.360702 0.660702"/>
+      <geom name="base_vis" type="mesh" mesh="body_mesh" rgba="0.75 0.77 0.82 1" contype="1" conaffinity="1"/>
 
       <site name="imu" pos="0 0 0" quat="1 0 0 0"/>
 
@@ -56,26 +54,28 @@
     </body>
   </worldbody>
 
-
-
-
   <actuator>
-    <general name="BLDC1" site="prop1_site" gear="0 0 1 0 0 0"/>
-    <general name="BLDC2" site="prop2_site" gear="0 0 1 0 0 0"/>
-    <general name="BLDC3" site="prop3_site" gear="0 0 1 0 0 0"/>
-    <general name="BLDC4" site="prop4_site" gear="0 0 1 0 0 0"/>
+    <general name="BLDC1" site="prop1_site" gear="0 0 1 0 0  0.02"  ctrlrange="0 50"/>
+    <general name="BLDC2" site="prop2_site" gear="0 0 1 0 0 -0.02"  ctrlrange="0 50"/>
+    <general name="BLDC3" site="prop3_site" gear="0 0 1 0 0  0.02"  ctrlrange="0 50"/>
+    <general name="BLDC4" site="prop4_site" gear="0 0 1 0 0 -0.02"  ctrlrange="0 50"/>
 
-    <position name="servo1_pos" joint="j_servo1" kp="50" ctrlrange="-1.57 1.57"/>
-    <position name="servo2_pos" joint="j_servo2" kp="50" ctrlrange="-1.57 1.57"/>
-    <position name="servo3_pos" joint="j_servo3" kp="50" ctrlrange="-1.57 1.57"/>
-    <position name="servo4_pos" joint="j_servo4" kp="50" ctrlrange="-1.57 1.57"/>
+    <position name="servo1_pos" joint="j_servo1" kp="30" kv="0.2" ctrlrange="-1.57 1.57"/>
+    <position name="servo2_pos" joint="j_servo2" kp="30" kv="0.2" ctrlrange="-1.57 1.57"/>
+    <position name="servo3_pos" joint="j_servo3" kp="30" kv="0.2" ctrlrange="-1.57 1.57"/>
+    <position name="servo4_pos" joint="j_servo4" kp="30" kv="0.2" ctrlrange="-1.57 1.57"/>
   </actuator>
 
   <sensor>
-    <framequat   name="body_quat"  objtype="site" objname="imu"/>
-    <gyro        name="body_gyro"  site="imu"/>
-    <frameangacc name="base_angacc"  objtype="body" objname="base"/>
-    <framepos    name="base_pos"     objtype="body" objname="base"/>
-    <framelinvel name="base_linvel"  objtype="body" objname="base"/>
+    <framequat   name="body_quat"   objtype="site" objname="imu"/>
+    <gyro        name="body_gyro"   site="imu"/>
+    <frameangacc name="base_angacc" objtype="body" objname="base"/>
+    <framepos    name="base_pos"    objtype="body" objname="base"/>
+    <framelinvel name="base_linvel" objtype="body" objname="base"/>
+
+    <jointpos name="servo1_angle" joint="j_servo1"/>
+    <jointpos name="servo2_angle" joint="j_servo2"/>
+    <jointpos name="servo3_angle" joint="j_servo3"/>
+    <jointpos name="servo4_angle" joint="j_servo4"/>
   </sensor>
 </mujoco>
