@@ -81,7 +81,14 @@ private:
     }
 
     palletrone_interfaces::msg::Input out;
-    out.u[0] = C1_(0); out.u[1] = C1_(1); out.u[2] = C1_(2); out.u[3] = C1_(3);
+    
+    double motor_speed[4];
+    motor_speed[0] = std::sqrt(std::max(0.0, C1_(0)/zeta));
+    motor_speed[1] = std::sqrt(std::max(0.0, C1_(1)/zeta));
+    motor_speed[2] = std::sqrt(std::max(0.0, C1_(2)/zeta));
+    motor_speed[3] = std::sqrt(std::max(0.0, C1_(3)/zeta));
+
+    out.u[0] = motor_speed[0]; out.u[1] = motor_speed[1]; out.u[2] = motor_speed[2]; out.u[3] = motor_speed[3];
     out.u[4] = C2_des_(0); out.u[5] = C2_des_(1); out.u[6] = C2_des_(2); out.u[7] = C2_des_(3);
     pub_input_->publish(out);
   }

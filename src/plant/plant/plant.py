@@ -4,13 +4,15 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 from ament_index_python.packages import get_package_share_directory
-
 import mujoco
 import mujoco.viewer
-
 from palletrone_interfaces.msg import Input, PalletroneState
 
 PHYSICS_HZ = 400.0
+ZETA = 0.02
+
+DELAY_TIME = 0.01
+SIG_POS=1e-3; SIG_VEL=1e-3; SIG_GYRO=1e-3; SIG_SERVO=1e-4 # noise
 
 def quat_to_rpy(q):
     w,x,y,z = q
@@ -40,14 +42,16 @@ class PlantRosNode(Node):
 
         self.s_adr = self.model.sensor_adr
         self.s_dim = self.model.sensor_dim
-        
-        #TODO 입력에 대한 시간지연및 모델 불확실성 추가함수 
 
         self.ctrl = np.zeros(8, dtype=float)
 
+        self.ctrl_recv = np.zeros(8, dtype=float)
+        self._delay_len = max(1, int(DELAY_TIME * PHYSICS_HZ))
+        self._delay_buf = np.zeros((self._delay_len,8), dtype=float)
+        self._delay_idx = 0
+
         self._lock = threading.Lock()
         self._stop = False
-
         self.prev_linvel_W = None
         self.prev_gyro_I = None
         self.prev_pub_t    = None
@@ -62,35 +66,47 @@ class PlantRosNode(Node):
         adr = self.s_adr[sid]; dim = self.s_dim[sid]
         return np.array(self.data.sensordata[adr:adr+dim], dtype=float)
 
+    def _noisy(self, x, s):
+        return x + np.random.normal(0.0, s, size=x.shape)
+
+    def _delay_step(self):
+        i = self._delay_idx
+        self._delay_buf[i] = self.ctrl_recv
+        self._delay_idx = (i + 1) % self._delay_len
+        return self._delay_buf[self._delay_idx]
+
     def input_callback(self, msg: Input):
         with self._lock:
-            self.ctrl[:] = np.asarray(msg.u, dtype=float)
+            self.ctrl_recv = np.asarray(msg.u, dtype=float)
 
     def sim_loop(self):
         next_step = time.perf_counter()
         next_pub  = next_step
-        
+
         while rclpy.ok() and not self._stop:
+
             now = time.perf_counter()
 
             with self._lock:
-                self.data.ctrl[0:4] = self.ctrl[0:4]  # f1..f4
-                self.data.ctrl[4:8] = self.ctrl[4:8]  # th1..th4
+                self.ctrl = self._delay_step()
+
+                self.data.ctrl[0:4] = ZETA * (self.ctrl[0:4]**2)
+                self.data.ctrl[4:8] = self.ctrl[4:8]
 
                 while now >= next_step:
                     mujoco.mj_step(self.model, self.data)
                     next_step += 1.0 / PHYSICS_HZ
 
                 while now >= next_pub:
-                    quat_imu_W = self.sensing_state(self.sid_quat)  
-                    gyro_I     = self.sensing_state(self.sid_gyro) 
-                    pos_W      = self.sensing_state(self.sid_pos)   
-                    linvel_W   = self.sensing_state(self.sid_vel)
-                    servo = np.array([self.sensing_state(sid)[0] for sid in self.sid_servo_ang], dtype=float)
-
-                    rpy      = quat_to_rpy(quat_imu_W)
+                    quat_imu_W = self.sensing_state(self.sid_quat)
+                    gyro_I     = self._noisy(self.sensing_state(self.sid_gyro), SIG_GYRO)
+                    pos_W      = self._noisy(self.sensing_state(self.sid_pos),  SIG_POS)
+                    linvel_W   = self._noisy(self.sensing_state(self.sid_vel), SIG_VEL)
+                    servo = self._noisy(np.array([self.sensing_state(sid)[0] for sid in self.sid_servo_ang], dtype=float), SIG_SERVO)
+                    rpy = quat_to_rpy(quat_imu_W)
 
                     t = now
+
                     if self.prev_pub_t is None:
                         acc_W = np.zeros(3)
                         a_rpy = np.zeros(3)
@@ -111,11 +127,13 @@ class PlantRosNode(Node):
                     msg.w_rpy = gyro_I.tolist()
                     msg.a_rpy = a_rpy.tolist()
                     msg.servo = servo.tolist()
+                    
                     self.pub_state.publish(msg)
 
                     next_pub += 1.0 / PHYSICS_HZ
 
             sleep_t = next_step - time.perf_counter()
+
             if sleep_t > 0:
                 time.sleep(sleep_t)
 
