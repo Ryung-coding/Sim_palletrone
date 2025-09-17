@@ -12,21 +12,13 @@ from palletrone_interfaces.msg import Input, PalletroneState
 
 PHYSICS_HZ = 400.0
 
-def quat_to_rpy(q):  # [w,x,y,z] -> [roll,pitch,yaw]
+def quat_to_rpy(q):
     w,x,y,z = q
     yaw   = math.atan2(2*(w*z + x*y), 1 - 2*(y*y + z*z))
     s     = max(-1.0, min(1.0, 2*(w*y - z*x)))
     pitch = math.asin(s)
     roll  = math.atan2(2*(w*x + y*z), 1 - 2*(x*x + y*y))
     return np.array([roll, pitch, yaw], float)
-
-def quat_to_R_WI(q):  # world-from-IMU
-    w,x,y,z = q
-    return np.array([
-        [1-2*(y*y+z*z), 2*(x*y - w*z),   2*(x*z + w*y)],
-        [2*(x*y + w*z), 1-2*(x*x+z*z),   2*(y*z - w*x)],
-        [2*(x*z - w*y), 2*(y*z + w*x),   1-2*(x*x+y*y)],
-    ], dtype=float)
 
 class PlantRosNode(Node):
     def __init__(self):
@@ -51,13 +43,13 @@ class PlantRosNode(Node):
         
         #TODO 입력에 대한 시간지연및 모델 불확실성 추가함수 
 
-        self.ctrl = np.zeros(8, dtype=float)  # [f1..f4, th1..th4]
+        self.ctrl = np.zeros(8, dtype=float)
 
         self._lock = threading.Lock()
         self._stop = False
 
         self.prev_linvel_W = None
-        self.prev_angvel_W = None
+        self.prev_gyro_I = None
         self.prev_pub_t    = None
 
         self.sub_input = self.create_subscription(Input, '/input', self.input_callback, 10)
@@ -96,8 +88,6 @@ class PlantRosNode(Node):
                     linvel_W   = self.sensing_state(self.sid_vel)
                     servo = np.array([self.sensing_state(sid)[0] for sid in self.sid_servo_ang], dtype=float)
 
-                    R_WI     = quat_to_R_WI(quat_imu_W)
-                    angvel_W = R_WI @ gyro_I
                     rpy      = quat_to_rpy(quat_imu_W)
 
                     t = now
@@ -107,18 +97,18 @@ class PlantRosNode(Node):
                     else:
                         dt = max(1e-6, t - self.prev_pub_t)
                         acc_W = (linvel_W - self.prev_linvel_W) / dt
-                        a_rpy = (angvel_W - self.prev_angvel_W) / dt
+                        a_rpy = (gyro_I - self.prev_gyro_I) / dt
 
                     self.prev_pub_t    = t
                     self.prev_linvel_W = linvel_W.copy()
-                    self.prev_angvel_W = angvel_W.copy()
+                    self.prev_gyro_I = gyro_I.copy()
 
                     msg = PalletroneState()
                     msg.pos   = pos_W.tolist()
                     msg.vel   = linvel_W.tolist()
                     msg.acc   = acc_W.tolist()
                     msg.rpy   = rpy.tolist()
-                    msg.w_rpy = angvel_W.tolist()
+                    msg.w_rpy = gyro_I.tolist()
                     msg.a_rpy = a_rpy.tolist()
                     msg.servo = servo.tolist()
                     self.pub_state.publish(msg)

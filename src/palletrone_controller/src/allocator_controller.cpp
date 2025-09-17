@@ -12,15 +12,13 @@
 class AllocatorController : public rclcpp::Node 
 {
 public:
-  static constexpr double inv_sqrt2   = 1.0 / 1.4142135623730951; // 1/sqrt(2)
-  static constexpr double zeta        = 0.02;   // reaction torque coeff [Nm/N]
-  static constexpr double lpf_alpha   = 0.01;   // LPF for tauz bias
-  static constexpr double tauz_min    = -2.0;   // yaw reaction torque min
-  static constexpr double tauz_max    =  2.0;   // yaw reaction torque max
-  static constexpr size_t buffer_size = 10;     // loop-time moving average size
+  static constexpr double inv_sqrt2   = 1.0 / 1.4142135623730951;
+  static constexpr size_t buffer_size = 10;
 
-  static constexpr double r   = 0.148492;
-  static constexpr double r_z = 0.0;
+  static constexpr double lpf_alpha = 0.01;   // LPF for tauz bias
+  static constexpr double zeta = 0.02;        // reaction torque coeff [Nm/N]
+  static constexpr double r = 0.148492;
+  static constexpr double r_z = 0.075;
 
   AllocatorController() : rclcpp::Node("allocator_controller")
   {
@@ -46,7 +44,6 @@ private:
 
   void onWrench(const palletrone_interfaces::msg::Wrench::SharedPtr msg)
   {
-    // ---- Loop Time Calculate (Moving avg filter) ----
     rclcpp::Time current_callback_time = this->now();
     double dt = (last_callback_time_.nanoseconds() > 0) ? (current_callback_time - last_callback_time_).seconds() : 0.01;
     last_callback_time_ = current_callback_time;
@@ -58,19 +55,14 @@ private:
     double avg_dt = dt_sum_ / static_cast<double>(buffer_size);
     filtered_frequency_ = 1.0 / std::max(avg_dt, 1e-4);
 
-    // ---- Wrench [Mx My Mz Fx Fy Fz] ----
     Eigen::Matrix<double,6,1> Wrench;
     Wrench << static_cast<double>(msg->moment[0]), static_cast<double>(msg->moment[1]), static_cast<double>(msg->moment[2]),
                static_cast<double>(msg->force[0]),  static_cast<double>(msg->force[1]),  static_cast<double>(msg->force[2]);
 
-    // ---- yaw wrench conversion ----
     tauz_bar_ = lpf_alpha * Wrench(2) + (1.0 - lpf_alpha) * tauz_bar_;
     double tauz_r     = Wrench(2) - tauz_bar_;
-    tauz_r = Wrench(2);
-    double tauz_r_sat = std::clamp(tauz_r, tauz_min, tauz_max);
+    double tauz_r_sat = std::clamp(tauz_r, -2.0, 2.0); // yaw reaction torque limit [Nm]
     double tauz_t     = tauz_bar_ + (tauz_r - tauz_r_sat);
-    tauz_t = 0.0;
-
 
     Eigen::Vector4d B1(Wrench(0), Wrench(1), tauz_r_sat, Wrench(5));
     Eigen::Matrix4d A1 = calc_A1(C2_mea_);
@@ -88,9 +80,8 @@ private:
       else C2_des_ = (A2.transpose()*A2 + 1e-8*Eigen::Matrix4d::Identity()).ldlt().solve(A2.transpose()*B2);
     }
 
-    // ---- Publish: order [f1 f2 f3 f4 th1 th2 th3 th4] ----
     palletrone_interfaces::msg::Input out;
-    out.u[0] = C1_(0); out.u[3] = C1_(1); out.u[2] = C1_(2); out.u[1] = C1_(3);
+    out.u[0] = C1_(0); out.u[1] = C1_(1); out.u[2] = C1_(2); out.u[3] = C1_(3);
     out.u[4] = C2_des_(0); out.u[5] = C2_des_(1); out.u[6] = C2_des_(2); out.u[7] = C2_des_(3);
     pub_input_->publish(out);
   }
@@ -107,14 +98,14 @@ private:
     double pcx = Pc_(0), pcy = Pc_(1), pcz = Pc_(2);
 
     A1(0,0) = inv_sqrt2 * ( zeta +  r_z - pcz) * s1 + ( +r - pcy) * c1;
-    A1(0,1) = inv_sqrt2 * (-zeta -  r_z + pcz) * s2 + ( -r - pcy) * c2;
+    A1(0,1) = inv_sqrt2 * (-zeta -  r_z + pcz) * s2 + ( +r - pcy) * c2;
     A1(0,2) = inv_sqrt2 * (-zeta -  r_z + pcz) * s3 + ( -r - pcy) * c3;
-    A1(0,3) = inv_sqrt2 * ( zeta +  r_z - pcz) * s4 + ( +r - pcy) * c4;
+    A1(0,3) = inv_sqrt2 * ( zeta +  r_z - pcz) * s4 + ( -r - pcy) * c4;
 
     A1(1,0) = inv_sqrt2 * (-zeta +  r_z - pcz) * s1 + ( -r + pcx) * c1;
-    A1(1,1) = inv_sqrt2 * (-zeta +  r_z - pcz) * s2 + ( -r + pcx) * c2;
+    A1(1,1) = inv_sqrt2 * (-zeta +  r_z - pcz) * s2 + ( +r + pcx) * c2;
     A1(1,2) = inv_sqrt2 * ( zeta -  r_z + pcz) * s3 + ( +r + pcx) * c3;
-    A1(1,3) = inv_sqrt2 * ( zeta -  r_z + pcz) * s4 + ( +r + pcx) * c4;
+    A1(1,3) = inv_sqrt2 * ( zeta -  r_z + pcz) * s4 + ( -r + pcx) * c4;
 
     A1(2,0) =  zeta * c1;
     A1(2,1) = -zeta * c2;
@@ -150,14 +141,14 @@ private:
     A2(1,3) = -inv_sqrt2 * f4;
 
     A2(2,0) = inv_sqrt2 * ( +pcx + pcy) * s1 + inv_sqrt2 * ( -(+r) - (+r) ) * f1;
-    A2(2,1) = inv_sqrt2 * ( -pcx + pcy) * s2 + inv_sqrt2 * (  (+r) - (-r) ) * f2;
+    A2(2,1) = inv_sqrt2 * ( -pcx + pcy) * s2 + inv_sqrt2 * (  (-r) - (+r) ) * f2;
     A2(2,2) = inv_sqrt2 * ( -pcx - pcy) * s3 + inv_sqrt2 * (  (-r) + (-r) ) * f3;
-    A2(2,3) = inv_sqrt2 * ( +pcx - pcy) * s4 + inv_sqrt2 * ( -(-r) + (+r) ) * f4;
+    A2(2,3) = inv_sqrt2 * ( +pcx - pcy) * s4 + inv_sqrt2 * ( -(+r) + (-r) ) * f4;
 
-    A2(3,0) = inv_sqrt2 * ( -(+r) - (+r) ) * f1;
-    A2(3,1) = inv_sqrt2 * ( -(+r) + (-r) ) * f2;
-    A2(3,2) = inv_sqrt2 * (  (-r) + (-r) ) * f3;
-    A2(3,3) = inv_sqrt2 * (  (+r) - (-r) ) * f4;
+    A2(3,0) = +inv_sqrt2 * ( -(+r) - (+r) ) * f1;
+    A2(3,1) = -inv_sqrt2 * ( +(-r) - (+r) ) * f2;
+    A2(3,2) = +inv_sqrt2 * ( +(-r) + (-r) ) * f3;
+    A2(3,3) = -inv_sqrt2 * ( -(+r) + (-r) ) * f4;
 
     return A2;
   }
@@ -173,10 +164,10 @@ private:
   double filtered_frequency_{0.0};
 
   double tauz_bar_{0.0};
-  Eigen::Vector4d C1_{Eigen::Vector4d::Zero()};       // [f1 f2 f3 f4]
-  Eigen::Vector4d C2_mea_{Eigen::Vector4d::Zero()};   // [th1 th2 th3 th4]
-  Eigen::Vector4d C2_des_{Eigen::Vector4d::Zero()};   // [th1 th2 th3 th4]
-  Eigen::Vector3d Pc_{Eigen::Vector3d::Zero()};       // center point offset
+  Eigen::Vector4d C1_{Eigen::Vector4d::Zero()};
+  Eigen::Vector4d C2_mea_{Eigen::Vector4d::Zero()};
+  Eigen::Vector4d C2_des_{Eigen::Vector4d::Zero()};
+  Eigen::Vector3d Pc_{Eigen::Vector3d::Zero()};
 };
 
 int main(int argc, char** argv) 
