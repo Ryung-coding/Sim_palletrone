@@ -12,14 +12,14 @@ class WrenchController : public rclcpp::Node
 public:
   WrenchController() : rclcpp::Node("wrench_controller")
   {
-    const double KP_POS[3] = {0.1, 0.1, 0.1};
-    const double KI_POS[3] = {0.5, 0.5, 1.0};
-    const double KD_POS[3] = {0.3, 0.3, 1.5};
-    const double I_MIN_POS = -5.0, I_MAX_POS = 5.0, OUT_MIN_POS = -200.0, OUT_MAX_POS = 200.0;
+    const double KP_POS[3] = {10.0, 10.0, 1.00};
+    const double KI_POS[3] = {0.01, 0.01, 0.03};
+    const double KD_POS[3] = {5.00, 5.00, 1.50};
+    const double I_MIN_POS = -5.0, I_MAX_POS = 5, OUT_MIN_POS = -200.0, OUT_MAX_POS = 200.0;
 
-    const double KP_ATT[3] = {1.00, 1.00, 1.00};
+    const double KP_ATT[3] = {3.00, 3.00, 3.00};
     const double KI_ATT[3] = {0.01, 0.01, 0.01};
-    const double KD_ATT[3] = {0.50, 0.50, 0.50};
+    const double KD_ATT[3] = {0.80, 0.80, 0.80};
     const double I_MIN_ATT = -1.0, I_MAX_ATT = 1.0, OUT_MIN_ATT = -5.0, OUT_MAX_ATT = 5.0;
 
     auto init_pid = [](double kp, double ki, double kd, double i_min, double i_max, double out_min, double out_max) -> std::function<double(double,double,double,double)>
@@ -133,7 +133,7 @@ private:
   std::function<double(double,double,double,double)> pid_pos_[3];
   std::function<double(double,double,double,double)> pid_att_[3];
 
-  const double mass_{4.0}, grav_{9.81};
+  const double mass_{4.8}, grav_{9.81};
   bool have_state_{false}, have_cmd_{false};
 };
 

@@ -1,4 +1,5 @@
 #include <chrono>
+#include <cmath>
 #include <rclcpp/rclcpp.hpp>
 #include <palletrone_interfaces/msg/cmd.hpp>
 
@@ -16,12 +17,9 @@ public:
     pub_cmd_ = this->create_publisher<Cmd>("/cmd", 10);
 
     auto period_ms = std::chrono::milliseconds(1000 / (RATE_HZ > 0 ? RATE_HZ : 1));
-    timer_ = this->create_wall_timer(
-      period_ms,
-      std::bind(&PositionCmd::onTick, this));
+    t0_ = std::chrono::steady_clock::now();
+    timer_ = this->create_wall_timer(period_ms,std::bind(&PositionCmd::onTick, this));
 
-    RCLCPP_INFO(this->get_logger(), "position_cmd up (/%s @ %d Hz)",
-                pub_cmd_->get_topic_name(), RATE_HZ);
   }
 
 private:
@@ -29,15 +27,22 @@ private:
   {
     using palletrone_interfaces::msg::Cmd;
     Cmd msg;
-    msg.pos_cmd[0] = static_cast<float>(X_CMD);
-    msg.pos_cmd[1] = static_cast<float>(Y_CMD);
-    msg.pos_cmd[2] = static_cast<float>(Z_CMD);
+    double t = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0_).count();
+    double w = 2.0 * M_PI / 40.0;
+    double s = std::sin(w*t), c = std::cos(w*t);
+    double x = 2.0 * s;
+    double y = 1.0 * s * c;
+    double z = 5.0 + 0.5 * std::sin(w*t + M_PI/2.0);
+    msg.pos_cmd[0] = static_cast<float>(x);
+    msg.pos_cmd[1] = static_cast<float>(y);
+    msg.pos_cmd[2] = static_cast<float>(z);
 
     pub_cmd_->publish(msg);
   }
 
   rclcpp::Publisher<palletrone_interfaces::msg::Cmd>::SharedPtr pub_cmd_;
   rclcpp::TimerBase::SharedPtr timer_;
+  std::chrono::steady_clock::time_point t0_;
 };
 
 int main(int argc, char** argv)
