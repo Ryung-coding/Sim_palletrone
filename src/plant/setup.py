@@ -22,6 +22,7 @@ setup(
     entry_points={
         'console_scripts': [
             'plant = plant.plant:main',
+            'palletrone_viewer = plant.palletrone_viewer:main',
         ],
     },
 )

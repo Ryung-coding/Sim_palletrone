@@ -33,10 +33,17 @@ def generate_launch_description():
         output="screen"
     )
 
+    viewer = Node(
+        package="plant",
+        executable="palletrone_viewer",  
+        name="palletrone_viewer",
+        output="screen"
+    )
+
     start_controllers_after_plant = RegisterEventHandler(
         OnProcessStart(
             target_action=plant,
-            on_start=[wrench_controller, allocator_controller]
+            on_start=[wrench_controller, allocator_controller, viewer]
         )
     )
 

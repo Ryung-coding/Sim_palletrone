@@ -13,16 +13,16 @@ public:
   WrenchController() : rclcpp::Node("wrench_controller")
   {
     const double KP_POS[3] = {10.0, 10.0, 1.00};
-    const double KI_POS[3] = {0.01, 0.01, 0.03};
+    const double KI_POS[3] = {0.0, 0.0, 0.0};
     const double KD_POS[3] = {5.00, 5.00, 1.50};
-    const double I_MIN_POS = -5.0, I_MAX_POS = 5, OUT_MIN_POS = -200.0, OUT_MAX_POS = 200.0;
+    const double I_MIN_POS = -5.0, I_MAX_POS = 5;
 
     const double KP_ATT[3] = {3.00, 3.00, 3.00};
-    const double KI_ATT[3] = {0.01, 0.01, 0.01};
+    const double KI_ATT[3] = {0.0, 0.0, 0.0};
     const double KD_ATT[3] = {0.80, 0.80, 0.80};
-    const double I_MIN_ATT = -1.0, I_MAX_ATT = 1.0, OUT_MIN_ATT = -5.0, OUT_MAX_ATT = 5.0;
+    const double I_MIN_ATT = -1.0, I_MAX_ATT = 1.0;
 
-    auto init_pid = [](double kp, double ki, double kd, double i_min, double i_max, double out_min, double out_max) -> std::function<double(double,double,double,double)>
+    auto init_pid = [](double kp, double ki, double kd, double i_min, double i_max) -> std::function<double(double,double,double,double)>
     {
       double iacc = 0.0;
       return [=](double ref, double cur, double dcur, double dt) mutable
@@ -33,30 +33,34 @@ public:
         iacc += ki * e * dt;
         iacc = std::clamp(iacc, i_min, i_max);
         double u = kp*e + iacc + kd*de;
-        return std::clamp(u, out_min, out_max);
+        return u;
       };
     };
 
-    pid_pos_[0] = init_pid(KP_POS[0], KI_POS[0], KD_POS[0], I_MIN_POS, I_MAX_POS, OUT_MIN_POS, OUT_MAX_POS);
-    pid_pos_[1] = init_pid(KP_POS[1], KI_POS[1], KD_POS[1], I_MIN_POS, I_MAX_POS, OUT_MIN_POS, OUT_MAX_POS);
-    pid_pos_[2] = init_pid(KP_POS[2], KI_POS[2], KD_POS[2], I_MIN_POS, I_MAX_POS, OUT_MIN_POS, OUT_MAX_POS);
+    pid_pos_[0] = init_pid(KP_POS[0], KI_POS[0], KD_POS[0], I_MIN_POS, I_MAX_POS);
+    pid_pos_[1] = init_pid(KP_POS[1], KI_POS[1], KD_POS[1], I_MIN_POS, I_MAX_POS );
+    pid_pos_[2] = init_pid(KP_POS[2], KI_POS[2], KD_POS[2], I_MIN_POS, I_MAX_POS);
 
-    pid_att_[0] = init_pid(KP_ATT[0], KI_ATT[0], KD_ATT[0], I_MIN_ATT, I_MAX_ATT, OUT_MIN_ATT, OUT_MAX_ATT);
-    pid_att_[1] = init_pid(KP_ATT[1], KI_ATT[1], KD_ATT[1], I_MIN_ATT, I_MAX_ATT, OUT_MIN_ATT, OUT_MAX_ATT);
-    pid_att_[2] = init_pid(KP_ATT[2], KI_ATT[2], KD_ATT[2], I_MIN_ATT, I_MAX_ATT, OUT_MIN_ATT, OUT_MAX_ATT);
+    pid_att_[0] = init_pid(KP_ATT[0], KI_ATT[0], KD_ATT[0], I_MIN_ATT, I_MAX_ATT);
+    pid_att_[1] = init_pid(KP_ATT[1], KI_ATT[1], KD_ATT[1], I_MIN_ATT, I_MAX_ATT);
+    pid_att_[2] = init_pid(KP_ATT[2], KI_ATT[2], KD_ATT[2], I_MIN_ATT, I_MAX_ATT);
 
     sub_cmd_ = this->create_subscription<palletrone_interfaces::msg::Cmd>("/cmd", 10, std::bind(&WrenchController::onCmd, this, std::placeholders::_1));
     sub_state_ = this->create_subscription<palletrone_interfaces::msg::PalletroneState>("/palletrone_state", 10, std::bind(&WrenchController::onState, this, std::placeholders::_1));
     pub_wrench_ = this->create_publisher<palletrone_interfaces::msg::Wrench>("/wrench", 10);
 
     pos_cmd_.setZero();
+    att_cmd_.setZero();
     last_time_ = this->now();
   }
 
 private:
   void onCmd(const palletrone_interfaces::msg::Cmd::SharedPtr msg)
   {
-    pos_cmd_ << static_cast<double>(msg->pos_cmd[0]), static_cast<double>(msg->pos_cmd[1]), static_cast<double>(msg->pos_cmd[2]); have_cmd_ = true; tryPublish();
+    pos_cmd_ << static_cast<double>(msg->pos_cmd[0]), static_cast<double>(msg->pos_cmd[1]), static_cast<double>(msg->pos_cmd[2]); 
+    att_cmd_ << static_cast<double>(msg->att_cmd[0]), static_cast<double>(msg->att_cmd[1]), static_cast<double>(msg->att_cmd[2]); 
+    have_cmd_ = true; 
+    tryPublish();
   }
 
   void onState(const palletrone_interfaces::msg::PalletroneState::SharedPtr msg)
@@ -95,17 +99,17 @@ private:
     Eigen::Matrix3d R_WB;
     R_WB <<  cy*cp,  cy*sp*sr - sy*cr,  cy*sp*cr + sy*sr,
              sy*cp,  sy*sp*sr + cy*cr,  sy*sp*cr - cy*sr,
-               -sp,              cp*sr,              cp*cr;
+               -sp,             cp*sr,             cp*cr;
 
     const Eigen::Vector3d F_body = R_WB.transpose() * F_world;
 
-    const double r_ref_d = 0.0, p_ref_d = 0.0, y_ref_d = 0.0;
-    const double y_err = std::atan2(std::sin(y_ref_d - rpy_.z()), std::cos(y_ref_d - rpy_.z()));
+    const Eigen::Vector3d att_ref = have_cmd_ ? att_cmd_ : Eigen::Vector3d::Zero();
+    const double y_err = std::atan2(std::sin(att_ref.z() - rpy_.z()), std::cos(att_ref.z() - rpy_.z()));
     const double y_ref_equiv = rpy_.z() + y_err;
 
     Eigen::Vector3d M_body; 
-    M_body.x() = pid_att_[0](r_ref_d, rpy_.x(), w_body_.x(), dt); 
-    M_body.y() = pid_att_[1](p_ref_d, rpy_.y(), w_body_.y(), dt); 
+    M_body.x() = pid_att_[0](att_ref.x(), rpy_.x(), w_body_.x(), dt); 
+    M_body.y() = pid_att_[1](att_ref.y(), rpy_.y(), w_body_.y(), dt); 
     M_body.z() = pid_att_[2](y_ref_equiv, rpy_.z(), w_body_.z(), dt);
 
     palletrone_interfaces::msg::Wrench w; 
@@ -125,6 +129,7 @@ private:
   rclcpp::Time last_time_;
 
   Eigen::Vector3d pos_cmd_{Eigen::Vector3d::Zero()};
+  Eigen::Vector3d att_cmd_{Eigen::Vector3d::Zero()};
   Eigen::Vector3d pos_{Eigen::Vector3d::Zero()};
   Eigen::Vector3d vel_{Eigen::Vector3d::Zero()};
   Eigen::Vector3d rpy_{Eigen::Vector3d::Zero()};
@@ -133,7 +138,7 @@ private:
   std::function<double(double,double,double,double)> pid_pos_[3];
   std::function<double(double,double,double,double)> pid_att_[3];
 
-  const double mass_{4.8}, grav_{9.81};
+  const double mass_{4.8}, grav_{9.806};
   bool have_state_{false}, have_cmd_{false};
 };
 
