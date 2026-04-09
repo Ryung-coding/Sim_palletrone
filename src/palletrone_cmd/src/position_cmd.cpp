@@ -4,6 +4,9 @@
 #include <palletrone_interfaces/msg/cmd.hpp>
 
 static constexpr int RATE_HZ = 400;
+static constexpr double HOVER_SEC  = 7.0;   
+static constexpr double HOVER_ALT  = 2.0;  
+static constexpr double TILT_ANGLE = 25.0 * M_PI / 180.0;
 
 class PositionCmd : public rclcpp::Node {
 public:
@@ -24,22 +27,29 @@ private:
   {
     using palletrone_interfaces::msg::Cmd;
     Cmd msg;
-    // double t = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0_).count();
-    // double w = 2.0 * M_PI / 40.0;
-    // double s = std::sin(w*t), c = std::cos(w*t);
-    // double x = 2.0 * s;
-    // double y = 1.0 * s * c;
-    // double z = 5.0 + 0.5 * std::sin(w*t + M_PI/2.0);
-    // msg.pos_cmd[0] = static_cast<float>(x);
-    // msg.pos_cmd[1] = static_cast<float>(y);
-    // msg.pos_cmd[2] = static_cast<float>(z);
-    msg.pos_cmd[0] = 0.0; // override x for testing
-    msg.pos_cmd[1] = 0.0; // override y for testing
-    msg.pos_cmd[2] = 1.5; // override z for testing
 
-    msg.att_cmd[0] = 15.0*M_PI/180.0; // roll
-    msg.att_cmd[1] = 0.0; // pitch
-    msg.att_cmd[2] = 0.0; // yaw
+    double t = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0_).count();
+
+    if(t < HOVER_SEC) {
+      msg.pos_cmd[0] = 0.0;
+      msg.pos_cmd[1] = 0.0;
+      msg.pos_cmd[2] = HOVER_ALT;
+      msg.att_cmd[0] = 0.0;
+      msg.att_cmd[1] = 0.0;
+      msg.att_cmd[2] = 0.0;
+    } else {
+      double tm = t - HOVER_SEC;
+      double w = 2.0 * M_PI / 5.0;
+      double s = std::sin(w * tm), c = std::cos(w * tm);
+
+      msg.pos_cmd[0] = 2.0 * std::sin(TILT_ANGLE) * s;
+      msg.pos_cmd[1] = 0.0;
+      msg.pos_cmd[2] = HOVER_ALT + 2.0 * std::sin(TILT_ANGLE) * c;
+
+      msg.att_cmd[0] =  TILT_ANGLE * c;
+      msg.att_cmd[1] =  0.0;
+      msg.att_cmd[2] = -TILT_ANGLE * s;
+    }
 
     pub_cmd_->publish(msg);
   }

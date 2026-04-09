@@ -13,7 +13,7 @@
       <site name="imu" pos="0 0 0" quat="1 0 0 0"/>
 
       <body name="servo1" pos="0.148492 0.148492 0.145" quat="0.9238795 0 0 0.3826834">
-        <joint name="j_servo1" type="hinge" axis="1 0 0" pos="0 0 -0.075" range="-3.14 3.14" damping="0.1"/>
+        <joint name="j_servo1" type="hinge" axis="1 0 0" pos="0 0 -0.075" range="-1.5 1.5" damping="10.0"/>
         <body name="prop1_body" pos="0 0 -0.075">
           <geom name="servo1_vis" type="mesh" mesh="servo_prop_mesh" mass="0.2"
                 quat="0.7071068 0 0 0.7071068"
@@ -23,7 +23,7 @@
       </body>
 
       <body name="servo2" pos="-0.148492 0.148492 0.145" quat="0.3826834 0 0 0.9238795">
-        <joint name="j_servo2" type="hinge" axis="1 0 0" pos="0 0 -0.075" range="-3.14 3.14" damping="0.1"/>
+        <joint name="j_servo2" type="hinge" axis="1 0 0" pos="0 0 -0.075" range="-1.5 1.5" damping="10.0"/>
         <body name="prop2_body" pos="0 0 -0.075">
           <geom name="servo2_vis" type="mesh" mesh="servo_prop_mesh" mass="0.2"
                 quat="0.7071068 0 0 0.7071068"
@@ -33,7 +33,7 @@
       </body>
 
       <body name="servo3" pos="-0.148492 -0.148492 0.145" quat="0.3826834 0 0 -0.9238795">
-        <joint name="j_servo3" type="hinge" axis="1 0 0" pos="0 0 -0.075" range="-3.14 3.14" damping="0.1"/>
+        <joint name="j_servo3" type="hinge" axis="1 0 0" pos="0 0 -0.075" range="-1.5 1.5" damping="10.0"/>
         <body name="prop3_body" pos="0 0 -0.075">
           <geom name="servo3_vis" type="mesh" mesh="servo_prop_mesh" mass="0.2"
                 quat="0.7071068 0 0 0.7071068"
@@ -43,7 +43,7 @@
       </body>
 
       <body name="servo4" pos="0.148492 -0.148492 0.145" quat="0.9238795 0 0 -0.3826834">
-        <joint name="j_servo4" type="hinge" axis="1 0 0" pos="0 0 -0.075" range="-3.14 3.14" damping="0.1"/>
+        <joint name="j_servo4" type="hinge" axis="1 0 0" pos="0 0 -0.075" range="-1.5 1.5" damping="10.0"/>
         <body name="prop4_body" pos="0 0 -0.075">
           <geom name="servo4_vis" type="mesh" mesh="servo_prop_mesh" mass="0.2"
                 quat="0.7071068 0 0 0.7071068"
@@ -51,19 +51,29 @@
           <site name="prop4_site" pos="0 0 0" size="0.004" type="sphere"/>
         </body>
       </body>
+
+      <body name="rod" pos="0 0 -0.1">
+        <geom name="rod_geom" type="cylinder" size="0.01 1.0"
+              pos="0 -1.0 0" quat="0.7071068 0.7071068 0 0"
+              mass="0.001" rgba="0.3 0.3 0.3 1" contype="0" conaffinity="0"/>
+        <geom name="rod_tip" type="sphere" size="0.03"
+              pos="0 -2.0 0"
+              mass="0.001" rgba="1.0 0.2 0.2 1" contype="0" conaffinity="0"/>
+        <site name="rod_tip_site" pos="0 -2.0 0" size="0.001" type="sphere"/>
+      </body>
     </body>
   </worldbody>
 
   <actuator>
-    <general name="BLDC1" site="prop1_site" gear="0 0 1 0 0  0.02"  ctrlrange="0 100"/>
-    <general name="BLDC2" site="prop2_site" gear="0 0 1 0 0 -0.02"  ctrlrange="0 100"/>
-    <general name="BLDC3" site="prop3_site" gear="0 0 1 0 0  0.02"  ctrlrange="0 100"/>
-    <general name="BLDC4" site="prop4_site" gear="0 0 1 0 0 -0.02"  ctrlrange="0 100"/>
+    <general name="BLDC1" site="prop1_site" gear="0 0 1 0 0  0.02"  ctrlrange="0 30"/>
+    <general name="BLDC2" site="prop2_site" gear="0 0 1 0 0 -0.02"  ctrlrange="0 30"/>
+    <general name="BLDC3" site="prop3_site" gear="0 0 1 0 0  0.02"  ctrlrange="0 30"/>
+    <general name="BLDC4" site="prop4_site" gear="0 0 1 0 0 -0.02"  ctrlrange="0 30"/>
 
-    <position name="servo1_pos" joint="j_servo1" kp="100" kv="0.02" ctrlrange="-3.14 3.14"/>
-    <position name="servo2_pos" joint="j_servo2" kp="100" kv="0.02" ctrlrange="-3.14 3.14"/>
-    <position name="servo3_pos" joint="j_servo3" kp="100" kv="0.02" ctrlrange="-3.14 3.14"/>
-    <position name="servo4_pos" joint="j_servo4" kp="100" kv="0.02" ctrlrange="-3.14 3.14"/>
+    <position name="servo1_pos" joint="j_servo1" kp="100" kv="0.1" ctrlrange="-1.5 1.5"/>
+    <position name="servo2_pos" joint="j_servo2" kp="100" kv="0.1" ctrlrange="-1.5 1.5"/>
+    <position name="servo3_pos" joint="j_servo3" kp="100" kv="0.1" ctrlrange="-1.5 1.5"/>
+    <position name="servo4_pos" joint="j_servo4" kp="100" kv="0.1" ctrlrange="-1.5 1.5"/>
   </actuator>
 
   <sensor>
@@ -76,5 +86,7 @@
     <jointpos name="servo2_angle" joint="j_servo2"/>
     <jointpos name="servo3_angle" joint="j_servo3"/>
     <jointpos name="servo4_angle" joint="j_servo4"/>
+
+    <framepos name="rod_tip_pos" objtype="site" objname="rod_tip_site"/>
   </sensor>
 </mujoco>

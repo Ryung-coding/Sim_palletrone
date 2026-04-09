@@ -18,7 +18,7 @@ public:
   static constexpr double lpf_alpha = 0.01;   // LPF for tauz bias
   static constexpr double zeta = 0.02;        // reaction torque coeff [Nm/N]
   static constexpr double r = 0.148492;
-  static constexpr double r_z = 0.075;
+  static constexpr double r_z = -0.075; //
 
   AllocatorController() : rclcpp::Node("allocator_controller")
   {
@@ -69,7 +69,10 @@ private:
     {
       Eigen::FullPivLU<Eigen::Matrix4d> lu_1(A1);
       if (lu_1.isInvertible()) C1_ = lu_1.solve(B1);
-      else C1_ = (A1.transpose()*A1 + 1e-8*Eigen::Matrix4d::Identity()).ldlt().solve(A1.transpose()*B1);
+      else {
+        std::cout << "[WARN] A1 singular (rank=" << lu_1.rank() << ")\nA1:\n" << A1 << "\nB1: " << B1.transpose() << std::endl;
+        C1_ = (A1.transpose()*A1 + 1e-8*Eigen::Matrix4d::Identity()).ldlt().solve(A1.transpose()*B1);
+      }
     }
 
     Eigen::Vector4d B2(Wrench(3), Wrench(4), tauz_t, 0.0);
@@ -77,19 +80,22 @@ private:
     {
       Eigen::FullPivLU<Eigen::Matrix4d> lu_2(A2);
       if (lu_2.isInvertible()) C2_des_ = lu_2.solve(B2);
-      else C2_des_ = (A2.transpose()*A2 + 1e-8*Eigen::Matrix4d::Identity()).ldlt().solve(A2.transpose()*B2);
+      else {
+        std::cout << "[WARN] A2 singular (rank=" << lu_2.rank() << ")\nA2:\n" << A2 << "\nB2: " << B2.transpose() << "\nC1_: " << C1_.transpose() << std::endl;
+        C2_des_ = (A2.transpose()*A2 + 1e-8*Eigen::Matrix4d::Identity()).ldlt().solve(A2.transpose()*B2);
+      }
     }
 
     palletrone_interfaces::msg::Input out;
     
-    double motor_speed[4];
-    motor_speed[0] = std::sqrt(std::max(0.0, C1_(0)/zeta));
-    motor_speed[1] = std::sqrt(std::max(0.0, C1_(1)/zeta));
-    motor_speed[2] = std::sqrt(std::max(0.0, C1_(2)/zeta));
-    motor_speed[3] = std::sqrt(std::max(0.0, C1_(3)/zeta));
-
-    out.u[0] = motor_speed[0]; out.u[1] = motor_speed[1]; out.u[2] = motor_speed[2]; out.u[3] = motor_speed[3];
-    out.u[4] = C2_des_(0); out.u[5] = C2_des_(1); out.u[6] = C2_des_(2); out.u[7] = C2_des_(3);
+    out.u[0] = std::sqrt(std::max(0.0, std::clamp(C1_(0), 0.0, 30.0)/zeta));
+    out.u[1] = std::sqrt(std::max(0.0, std::clamp(C1_(1), 0.0, 30.0)/zeta)); 
+    out.u[2] = std::sqrt(std::max(0.0, std::clamp(C1_(2), 0.0, 30.0)/zeta)); 
+    out.u[3] = std::sqrt(std::max(0.0, std::clamp(C1_(3), 0.0, 30.0)/zeta));
+    out.u[4] = std::clamp(C2_des_(0), -1.5, 1.5);
+    out.u[5] = std::clamp(C2_des_(1), -1.5, 1.5);
+    out.u[6] = std::clamp(C2_des_(2), -1.5, 1.5);
+    out.u[7] = std::clamp(C2_des_(3), -1.5, 1.5);
     pub_input_->publish(out);
   }
 

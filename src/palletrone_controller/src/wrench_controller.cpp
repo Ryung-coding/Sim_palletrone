@@ -12,15 +12,15 @@ class WrenchController : public rclcpp::Node
 public:
   WrenchController() : rclcpp::Node("wrench_controller")
   {
-    const double KP_POS[3] = {10.0, 10.0, 1.00};
-    const double KI_POS[3] = {0.0, 0.0, 0.0};
-    const double KD_POS[3] = {5.00, 5.00, 1.50};
-    const double I_MIN_POS = -5.0, I_MAX_POS = 5;
+    const double KP_POS[3] = {50.0, 50.0, 70.00};
+    const double KI_POS[3] = {8.0, 8.0, 10.0};
+    const double KD_POS[3] = {10.0, 10.0, 10.0};
+    const double I_MIN_POS = -50.0, I_MAX_POS = 50.0;
 
-    const double KP_ATT[3] = {3.00, 3.00, 3.00};
-    const double KI_ATT[3] = {0.0, 0.0, 0.0};
-    const double KD_ATT[3] = {0.80, 0.80, 0.80};
-    const double I_MIN_ATT = -1.0, I_MAX_ATT = 1.0;
+    const double KP_ATT[3] = {25.00, 25.00, 25.00};
+    const double KI_ATT[3] = {3.0, 3.0, 3.0};
+    const double KD_ATT[3] = {6.0, 6.0, 6.0};
+    const double I_MIN_ATT = -10.0, I_MAX_ATT = 10.0;
 
     auto init_pid = [](double kp, double ki, double kd, double i_min, double i_max) -> std::function<double(double,double,double,double)>
     {

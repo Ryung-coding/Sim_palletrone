@@ -12,7 +12,7 @@ PHYSICS_HZ = 400.0
 ZETA = 0.02
 
 DELAY_TIME = 0.01
-SIG_POS=1e-3; SIG_VEL=1e-3; SIG_GYRO=1e-3; SIG_SERVO=1e-4 # noise
+SIG_POS=0.0; SIG_VEL=0.0; SIG_GYRO=0.0; SIG_SERVO=0.0
 
 def quat_to_rpy(q):
     w,x,y,z = q
@@ -39,6 +39,7 @@ class PlantRosNode(Node):
         self.sid_pos  = sid("base_pos")
         self.sid_vel  = sid("base_linvel")
         self.sid_servo_ang = [sid("servo1_angle"), sid("servo2_angle"), sid("servo3_angle"),sid("servo4_angle")]
+        self.sid_tip_pos = sid("rod_tip_pos")
 
         self.s_adr = self.model.sensor_adr
         self.s_dim = self.model.sensor_dim
@@ -103,6 +104,7 @@ class PlantRosNode(Node):
                     pos_W      = self._noisy(self.sensing_state(self.sid_pos),  SIG_POS)
                     linvel_W   = self._noisy(self.sensing_state(self.sid_vel), SIG_VEL)
                     servo = self._noisy(np.array([self.sensing_state(sid)[0] for sid in self.sid_servo_ang], dtype=float), SIG_SERVO)
+                    tip_pos = self.sensing_state(self.sid_tip_pos)
                     rpy = quat_to_rpy(quat_imu_W)
 
                     t = now
@@ -127,7 +129,8 @@ class PlantRosNode(Node):
                     msg.w_rpy = gyro_I.tolist()
                     msg.a_rpy = a_rpy.tolist()
                     msg.servo = servo.tolist()
-                    
+                    msg.tip_pos = tip_pos.tolist()
+
                     self.pub_state.publish(msg)
 
                     next_pub += 1.0 / PHYSICS_HZ
